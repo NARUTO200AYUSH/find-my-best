@@ -6,7 +6,7 @@ type Props = {
 
 export default function CitySelector({ city, setCity, count }: Props) {
   return (
-    <div className="w-full max-w-xl bg-white shadow-md rounded-xl p-6">
+    <div className="w-full">
 
       <p className="text-gray-600 mb-2 font-medium">
         Select Your City
@@ -15,7 +15,7 @@ export default function CitySelector({ city, setCity, count }: Props) {
       <select
         value={city}
         onChange={(e) => setCity(e.target.value)}
-        className="w-full bg-gray-100 p-3 rounded-lg border focus:outline-none"
+        className="w-full bg-gray-50 p-3 rounded-lg border focus:outline-none"
       >
         <option value="All">All Cities</option>
         <option value="Delhi">Delhi</option>
@@ -23,7 +23,7 @@ export default function CitySelector({ city, setCity, count }: Props) {
         <option value="Bangalore">Bangalore</option>
       </select>
 
-      <p className="text-sm text-gray-500 mt-3">
+      <p className="text-sm text-gray-500 mt-3 ml-3">
         {count} schools available
       </p>
 

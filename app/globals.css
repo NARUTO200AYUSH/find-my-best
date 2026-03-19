@@ -14,3 +14,28 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, Helvetica, Arial, sans-serif;
 }
+/* Scrollbar Styling */
+
+/* width */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+/* track */
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* thumb */
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #3b82f6, #9333ea);
+  border-radius: 10px;
+}
+
+/* hover */
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #2563eb, #7e22ce);
+}
+::-webkit-scrollbar {
+  width: 6px;
+}
