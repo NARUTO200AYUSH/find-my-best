@@ -39,7 +39,7 @@ export default function Home() {
             Find the Perfect School
           </h1>
 
-          <p className="mt-4 text-blue-100 max-w-xl">
+          <p className="mt-4 text-blue-100 max-w-2xl">
             Discover and compare the best schools in your city.
           </p>
         </div>
@@ -47,7 +47,7 @@ export default function Home() {
 
       {/* FILTER SECTION (SEPARATE LIKE SAMPLE) */}
       <div className="-mt-10 bg-white py-6 rounded-2xl shadow-lg max-w-6xl mx-auto px-6">
-        <div className="max-w-6xl mx-auto px-6 space-y-4">
+        <div className="max-w-6xl mx-auto px-6 space-y-3">
 
           <CitySelector
             city={city}
@@ -69,7 +69,7 @@ export default function Home() {
           Showing {filteredSchools.length} schools
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredSchools.map((school, index) => (
             <SchoolCard
               key={index}

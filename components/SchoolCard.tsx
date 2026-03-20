@@ -1,6 +1,8 @@
+import Link from "next/link";
 export default function SchoolCard({ name, location, rating, type }) {
   return (
-<div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition duration-200 w-full">
+  <Link href={`/school/${encodeURIComponent(name)}`}>
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition duration-200 w-full cursor-pointer">
       {/* Image */}
       <div className="relative">
         <img
@@ -38,5 +40,6 @@ export default function SchoolCard({ name, location, rating, type }) {
       </div>
 
     </div>
+     </Link>
   );
 }
