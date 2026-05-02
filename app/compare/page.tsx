@@ -1,222 +1,318 @@
 "use client";
 
-import { schoolsData } from "@/lib/schoolsData";
 import Navbar from "@/components/Navbar";
+
 import { useEffect, useState } from "react";
+
 import { useRouter } from "next/navigation";
+
 import { BarChart3, Star } from "lucide-react";
 
+import {
+collection,
+getDocs,
+} from "firebase/firestore";
+
+import { db } from "@/lib/firebase";
+
 export default function ComparePage() {
-  const [schools, setSchools] = useState<string[]>([]);
-  const router = useRouter();
+const [schools, setSchools] = useState<any[]>([]);
+const router = useRouter();
 
-  useEffect(() => {
-    const data = JSON.parse(localStorage.getItem("compare") || "[]");
-    setSchools(data);
-  }, []);
+useEffect(() => {
+async function fetchSchools() {
+const compareIds = JSON.parse(
+localStorage.getItem("compare") || "[]"
+);
 
-  const getSchool = (name: string) =>
-    schoolsData.find((s) => s.name === name);
+  const querySnapshot = await getDocs(collection(db, "schools"));
 
-  const selectedSchools = schools
-    .map((name) => schoolsData.find((s) => s.name === name))
-    .filter(Boolean) as any[];
+  const allSchools: any[] = [];
 
-  const maxRating =
-    selectedSchools.length > 0
-      ? Math.max(...selectedSchools.map((s) => s.rating))
-      : 0;
+  querySnapshot.forEach((doc) => {
+    allSchools.push({
+      id: doc.id,
+      ...doc.data(),
+    });
+  });
 
-  const getLastFee = (s: any) => {
-    const last = s.feeDetails[s.feeDetails.length - 1].amount;
-    return Number(last.replace(/[^0-9]/g, ""));
-  };
+  const selected = allSchools.filter((school) =>
+    compareIds.includes(school.id)
+  );
 
-  const minFee =
-    selectedSchools.length > 0
-      ? Math.min(...selectedSchools.map((s) => getLastFee(s)))
-      : 0;
+  setSchools(selected);
+}
 
-  const getHighlight = (s: any) => {
-    if (!s) return "";
-    if (getLastFee(s) === minFee) return "bg-green-50";
-    if (s.rating === maxRating) return "bg-yellow-50";
-    return "";
-  };
+fetchSchools();
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      <Navbar />
+}, []);
 
-      <div className="max-w-6xl mx-auto px-6 py-10">
+const maxRating =
+schools.length > 0
+? Math.max(...schools.map((s) => s.rating))
+: 0;
 
-        {/* HEADER */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-gray-900">
-            Compare Schools
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Side-by-side comparison of selected schools
-          </p>
+const getLastFee = (s: any) => {
+if (!s?.feeDetails?.length) return 0;
+
+const last = s.feeDetails[s.feeDetails.length - 1]?.amount || "0";
+
+return Number(last.replace(/[^0-9]/g, ""));
+
+};
+
+const minFee =
+schools.length > 0
+? Math.min(...schools.map((s) => getLastFee(s)))
+: 0;
+
+const getHighlight = (s: any) => {
+if (!s) return "";
+
+if (getLastFee(s) === minFee) {
+  return "bg-green-50";
+}
+
+if (s.rating === maxRating) {
+  return "bg-yellow-50";
+}
+
+return "";
+
+};
+
+return (
+<div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+
+  <Navbar />
+
+  <div className="max-w-6xl mx-auto px-6 py-10">
+
+    <div className="mb-8">
+      <h1 className="text-3xl font-semibold text-gray-900">
+        Compare Schools
+      </h1>
+
+      <p className="text-gray-500 text-sm mt-1">
+        Side-by-side comparison of selected schools
+      </p>
+    </div>
+
+    {schools.length === 0 ? (
+
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+
+        <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 mb-4">
+          <BarChart3 size={22} />
         </div>
 
-        {schools.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+        <h2 className="text-lg font-semibold text-gray-900">
+          No Schools to Compare
+        </h2>
 
-            {/* ICON */}
-            <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 mb-4">
-              <BarChart3 size={22} />
-            </div>
+        <p className="text-sm text-gray-500 mt-1 max-w-sm">
+          Start adding schools to compare them side by side.
+        </p>
 
-            {/* TITLE */}
-            <h2 className="text-lg font-semibold text-gray-900">
-              No Schools to Compare
-            </h2>
-
-            {/* SUBTEXT */}
-            <p className="text-sm text-gray-500 mt-1 max-w-sm">
-              Start adding schools to compare them side by side.
-            </p>
-
-            {/* BUTTON */}
-            <button
-              onClick={() => router.push("/")}
-              className="mt-5 px-5 py-2 rounded-lg text-white text-sm font-medium bg-blue-600 hover:bg-blue-700 transition"
-            >
-              Browse Schools
-            </button>
-
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
-
-            <table className="w-full text-sm">
-
-              {/* HEADER */}
-              <thead className="border-b">
-                <tr>
-                  <th className="p-4 text-left text-gray-400">Feature</th>
-
-                  {schools.map((name, i) => {
-                    const school = getSchool(name);
-                    if (!school) return null;
-
-                    return (
-                      <th key={i} className={`p-4 text-left ${getHighlight(school)}`}>
-                        <div className="flex items-start justify-between gap-2">
-
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-gray-900">
-                              {school.name}
-                            </span>
-
-                            {getLastFee(school) === minFee && (
-                              <span className="text-xs text-green-600 font-medium">
-                                Best Value
-                              </span>
-                            )}
-
-                            {school.rating === maxRating && (
-                              <span className="text-xs text-yellow-600 font-medium">
-                                Top Rated
-                              </span>
-                            )}
-                          </div>
-
-                          <button
-                            onClick={() => {
-                              const updated = schools.filter((s) => s !== name);
-                              setSchools(updated);
-                              localStorage.setItem("compare", JSON.stringify(updated));
-                              window.dispatchEvent(new Event("storage"));
-                            }}
-                            className="text-gray-300 hover:text-red-500 text-base"
-                          >
-                            ×
-                          </button>
-
-                        </div>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-
-              <tbody>
-
-                {["location", "type", "rating", "students", "classes"].map((field, rowIndex) => (
-                  <tr key={rowIndex} className="border-b">
-                    <td className="p-4 text-gray-500 capitalize">{field}</td>
-
-                    {schools.map((name, i) => {
-                      const s = getSchool(name);
-                      if (!s) return null;
-
-                      return (
-                        <td key={i} className={`p-4 ${getHighlight(s)}`}>
-
-                          {field === "rating" ? (
-                            <span className="flex items-center gap-1">
-                              <Star size={14} className="text-yellow-500" />
-                              {s.rating}
-                            </span>
-                          ) : (
-                            s[field]
-                          )}
-
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-
-                {/* FEES */}
-                <tr className="border-b">
-                  <td className="p-4 text-gray-500">Fees</td>
-
-                  {schools.map((name, i) => {
-                    const s = getSchool(name);
-                    if (!s) return null;
-
-                    return (
-                      <td key={i} className={`p-4 ${getHighlight(s)}`}>
-                        <div className="space-y-1">
-                          {s.feeDetails.map((f, idx) => (
-                            <div key={idx} className="text-xs text-gray-600">
-                              {f.classRange}:{" "}
-                              <span className="font-medium">{f.amount}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-
-                {/* CONTACT */}
-                <tr>
-                  <td className="p-4 text-gray-500">Contact</td>
-
-                  {schools.map((name, i) => {
-                    const s = getSchool(name);
-                    if (!s) return null;
-
-                    return (
-                      <td key={i} className={`p-4 text-xs ${getHighlight(s)}`}>
-                        <div>{s.contact.phone}</div>
-                        <div>{s.contact.email}</div>
-                      </td>
-                    );
-                  })}
-                </tr>
-
-              </tbody>
-            </table>
-
-          </div>
-        )}
+        <button
+          onClick={() => router.push("/")}
+          className="mt-5 px-5 py-2 rounded-lg text-white text-sm font-medium bg-blue-600 hover:bg-blue-700 transition"
+        >
+          Browse Schools
+        </button>
 
       </div>
-    </div>
-  );
+
+    ) : (
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
+
+        <table className="w-full text-sm">
+
+          <thead className="border-b">
+            <tr>
+
+              <th className="p-4 text-left text-gray-400">
+                Feature
+              </th>
+
+              {schools.map((school, i) => (
+
+                <th
+                  key={i}
+                  className={`p-4 text-left ${getHighlight(school)}`}
+                >
+
+                  <div className="flex items-start justify-between gap-2">
+
+                    <div className="flex flex-col">
+
+                      <span className="font-semibold text-gray-900">
+                        {school.name}
+                      </span>
+
+                      {getLastFee(school) === minFee && (
+                        <span className="text-xs text-green-600 font-medium">
+                          Best Value
+                        </span>
+                      )}
+
+                      {school.rating === maxRating && (
+                        <span className="text-xs text-yellow-600 font-medium">
+                          Top Rated
+                        </span>
+                      )}
+
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        const compareIds = JSON.parse(
+                          localStorage.getItem("compare") || "[]"
+                        );
+
+                        const updated = compareIds.filter(
+                          (id: string) => id !== school.id
+                        );
+
+                        localStorage.setItem(
+                          "compare",
+                          JSON.stringify(updated)
+                        );
+                        window.dispatchEvent(new Event ("storage"))
+                        setSchools((prev) =>
+                          prev.filter((s) => s.id !== school.id)
+                        );
+                      }}
+                      className="text-gray-300 hover:text-red-500 text-base"
+                    >
+                      ×
+                    </button>
+
+                  </div>
+
+                </th>
+
+              ))}
+
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {["location", "type", "rating", "students", "classes"].map(
+              (field, rowIndex) => (
+
+                <tr key={rowIndex} className="border-b">
+
+                  <td className="p-4 text-gray-500 capitalize">
+                    {field}
+                  </td>
+
+                  {schools.map((s, i) => (
+
+                    <td
+                      key={i}
+                      className={`p-4 ${getHighlight(s)}`}
+                    >
+
+                      {field === "rating" ? (
+
+                        <span className="flex items-center gap-1">
+                          <Star
+                            size={14}
+                            className="text-yellow-500"
+                          />
+                          {s.rating}
+                        </span>
+
+                      ) : (
+                        s[field]
+                      )}
+
+                    </td>
+
+                  ))}
+
+                </tr>
+
+              )
+            )}
+
+            <tr className="border-b">
+
+              <td className="p-4 text-gray-500">
+                Fees
+              </td>
+
+              {schools.map((s, i) => (
+
+                <td
+                  key={i}
+                  className={`p-4 ${getHighlight(s)}`}
+                >
+
+                  <div className="space-y-1">
+
+                    {s.feeDetails?.map((f: any, idx: number) => (
+
+                      <div
+                        key={idx}
+                        className="text-xs text-gray-600"
+                      >
+
+                        {f.classRange}:{" "}
+
+                        <span className="font-medium">
+                          {f.amount}
+                        </span>
+
+                      </div>
+
+                    ))}
+
+                  </div>
+
+                </td>
+
+              ))}
+
+            </tr>
+
+            <tr>
+
+              <td className="p-4 text-gray-500">
+                Contact
+              </td>
+
+              {schools.map((s, i) => (
+
+                <td
+                  key={i}
+                  className={`p-4 text-xs ${getHighlight(s)}`}
+                >
+
+                  <div>{s.contact?.phone}</div>
+
+                  <div>{s.contact?.email}</div>
+
+                </td>
+
+              ))}
+
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    )}
+
+  </div>
+
+</div>
+
+);
 }
