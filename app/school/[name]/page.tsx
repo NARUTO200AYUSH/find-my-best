@@ -38,6 +38,9 @@ export default function SchoolPage() {
   const [added, setAdded] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
+  // HERO SLIDER
+  const [currentImage, setCurrentImage] = useState(0);
+
   useEffect(() => {
     async function fetchSchool() {
       try {
@@ -72,6 +75,19 @@ export default function SchoolPage() {
     fetchSchool();
   }, [params.name]);
 
+  // AUTO IMAGE SLIDER
+  useEffect(() => {
+    if (!school?.images || school.images.length === 0) return;
+
+    const interval = setInterval(() => {
+      setCurrentImage((prev) =>
+        prev === school.images.length - 1 ? 0 : prev + 1
+      );
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [school]);
+
   if (loading) {
     return <div className="p-10">Loading...</div>;
   }
@@ -86,14 +102,19 @@ export default function SchoolPage() {
       <Navbar />
 
       {/* HERO */}
-      <div className="relative w-full">
+      <div className="relative w-full overflow-hidden">
 
         <img
           src={
-            school.image ||
-            "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1200"
-          }
-          className="w-full h-[300px] md:h-[400px] object-cover"
+                 school.images &&
+                 school.images.length > 0 &&
+                 school.images[currentImage]
+                 ? school.images[currentImage]
+                 : school.image ||
+                  "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1200"
+              }
+          className="w-full h-[300px] md:h-[400px] object-cover transition-all duration-700"
+          alt={school.name}
         />
 
         <div className="absolute inset-0 bg-black/40"></div>
