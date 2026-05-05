@@ -13,10 +13,10 @@ import {
 
 import {
   collection,
-  deleteDoc,
   doc,
   getDocs,
   query,
+  updateDoc,
   where,
 } from "firebase/firestore";
 
@@ -55,6 +55,9 @@ export default function DashboardPage() {
 
   const [deleteError, setDeleteError] =
     useState("");
+
+  const [viewMode, setViewMode] =
+    useState("active");
 
   useEffect(() => {
 
@@ -202,7 +205,7 @@ export default function DashboardPage() {
 
   }
 
-  // ================= DELETE SCHOOL =================
+  // ================= DEACTIVATE SCHOOL =================
   async function handleDeleteSchool() {
 
     if (!selectedSchool) return;
@@ -233,7 +236,7 @@ export default function DashboardPage() {
         return;
       }
 
-      // ================= REAUTHENTICATE =================
+      // ================= REAUTH =================
       const credential =
         EmailAuthProvider.credential(
           user.email,
@@ -245,48 +248,28 @@ export default function DashboardPage() {
         credential
       );
 
-      // ================= DELETE SCHOOL =================
-      await deleteDoc(
+      // ================= DEACTIVATE SCHOOL =================
+      await updateDoc(
         doc(
           db,
           "schools",
           selectedSchool.id
-        )
+        ),
+        {
+          isActive: false,
+        }
       );
 
-      // ================= DELETE ADMIN DOC =================
-      const adminQuery = query(
-        collection(db, "admins"),
-        where(
-          "schoolId",
-          "==",
-          selectedSchool.id
-        )
-      );
-
-      const adminSnapshot =
-        await getDocs(
-          adminQuery
-        );
-
-      for (const adminDoc of adminSnapshot.docs) {
-
-        await deleteDoc(
-          doc(
-            db,
-            "admins",
-            adminDoc.id
-          )
-        );
-
-      }
-
-      // ================= REMOVE FROM UI =================
+      // ================= UPDATE UI =================
       setSchools((prev) =>
-        prev.filter(
-          (item) =>
-            item.id !==
-            selectedSchool.id
+        prev.map((school) =>
+          school.id ===
+          selectedSchool.id
+            ? {
+                ...school,
+                isActive: false,
+              }
+            : school
         )
       );
 
@@ -313,7 +296,7 @@ export default function DashboardPage() {
       } else {
 
         setDeleteError(
-          "Failed to delete school"
+          "Failed to deactivate school"
         );
 
       }
@@ -321,6 +304,47 @@ export default function DashboardPage() {
     }
 
     setDeleting(false);
+
+  }
+
+  // ================= RESTORE SCHOOL =================
+  async function handleRestoreSchool(
+    school: any
+  ) {
+
+    try {
+
+      await updateDoc(
+        doc(
+          db,
+          "schools",
+          school.id
+        ),
+        {
+          isActive: true,
+        }
+      );
+
+      setSchools((prev) =>
+        prev.map((item) =>
+          item.id === school.id
+            ? {
+                ...item,
+                isActive: true,
+              }
+            : item
+        )
+      );
+
+    } catch (error) {
+
+      console.log(error);
+
+      alert(
+        "Failed to restore school"
+      );
+
+    }
 
   }
 
@@ -397,42 +421,104 @@ export default function DashboardPage() {
 
       </div>
 
+      {/* FILTER BUTTONS */}
+      <div className="flex items-center gap-3 mb-8">
+
+        <button
+          onClick={() =>
+            setViewMode("active")
+          }
+          className={`px-5 py-2 rounded-xl transition ${
+            viewMode === "active"
+              ? "bg-blue-600 text-white"
+              : "bg-white text-gray-700"
+          }`}
+        >
+
+          Active Schools
+
+        </button>
+
+        <button
+          onClick={() =>
+            setViewMode("inactive")
+          }
+          className={`px-5 py-2 rounded-xl transition ${
+            viewMode === "inactive"
+              ? "bg-red-500 text-white"
+              : "bg-white text-gray-700"
+          }`}
+        >
+
+          Inactive Schools
+
+        </button>
+
+      </div>
+
       {/* SCHOOLS */}
       <div className="grid md:grid-cols-2 gap-6">
 
-        {schools.map((school: any) => (
+        {schools
+          .filter((school: any) =>
+            viewMode === "active"
+              ? school.isActive !== false
+              : school.isActive === false
+          )
+          .map((school: any) => (
 
           <div
             key={school.id}
             className="relative bg-white rounded-3xl p-6 shadow-sm group overflow-hidden"
           >
 
-            {/* DELETE BUTTON */}
+            {/* ACTION BUTTON */}
             {adminRole ===
               "super_admin" && (
 
-              <button
-                onClick={() =>
-                  openDeleteModal(
-                    school
-                  )
-                }
-                className="absolute top-4 right-4 w-11 h-11 rounded-2xl border border-gray-200 bg-white/90 backdrop-blur flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 transition-all duration-300"
-              >
+              <>
+                {school.isActive !== false ? (
 
-                <Trash2
-                  size={18}
-                  className="text-gray-500 hover:text-red-500"
-                />
+                  <button
+                    onClick={() =>
+                      openDeleteModal(
+                        school
+                      )
+                    }
+                    className="absolute top-4 right-4 w-11 h-11 rounded-2xl border border-gray-200 bg-white/90 backdrop-blur flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:border-red-200 transition-all duration-300"
+                  >
 
-              </button>
+                    <Trash2
+                      size={18}
+                      className="text-gray-500 hover:text-red-500"
+                    />
+
+                  </button>
+
+                ) : (
+
+                  <button
+                    onClick={() =>
+                      handleRestoreSchool(
+                        school
+                      )
+                    }
+                    className="absolute top-4 right-4 px-4 py-2 rounded-2xl bg-green-500 hover:bg-green-600 text-white text-sm font-medium opacity-0 group-hover:opacity-100 transition-all duration-300"
+                  >
+
+                    Restore
+
+                  </button>
+
+                )}
+              </>
 
             )}
 
             <img
-             src={
-              school.image ||
-              "https://placehold.co/600x400?text=No+Image"
+              src={
+                school.image ||
+                "https://placehold.co/600x400?text=No+Image"
               }
               className="w-full h-48 object-cover rounded-2xl mb-4"
             />
@@ -488,11 +574,11 @@ export default function DashboardPage() {
                 <div>
 
                   <h2 className="text-xl font-semibold text-gray-900">
-                    Delete School
+                    Deactivate School
                   </h2>
 
                   <p className="text-sm text-gray-500 mt-1">
-                    This action cannot be undone.
+                    School will become inactive and hidden from users.
                   </p>
 
                 </div>
@@ -526,7 +612,7 @@ export default function DashboardPage() {
 
                 <p className="text-sm text-gray-700 leading-relaxed">
 
-                  You are about to permanently delete:
+                  You are about to deactivate:
 
                 </p>
 
@@ -601,8 +687,8 @@ export default function DashboardPage() {
               >
 
                 {deleting
-                  ? "Deleting..."
-                  : "Delete School"}
+                  ? "Deactivating..."
+                  : "Deactivate School"}
 
               </button>
 
